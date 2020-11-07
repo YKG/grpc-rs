@@ -4,6 +4,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc;
 use std::sync::Arc;
 use std::thread::{Builder as ThreadBuilder, JoinHandle};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use crate::grpc_sys;
 
@@ -18,6 +19,9 @@ fn poll_queue(tx: mpsc::Sender<CompletionQueue>) {
     tx.send(cq.clone()).expect("send back completion queue");
     loop {
         let e = cq.next();
+        let start2 = Instant::now();
+        let since_the_epoch = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards");
+        info!("YKGX poll_queue event: {:?} ts: {}", e, since_the_epoch.as_millis());
         match e.type_ {
             EventType::GRPC_QUEUE_SHUTDOWN => break,
             // timeout should not happen in theory.
@@ -31,6 +35,7 @@ fn poll_queue(tx: mpsc::Sender<CompletionQueue>) {
         while let Some(work) = unsafe { cq.worker.pop_work() } {
             work.finish(&cq);
         }
+        info!("YKGX event loop one pass duration: {:?} ts: {:?}", start2.elapsed().as_millis(), since_the_epoch.as_millis());
     }
 }
 
