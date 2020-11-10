@@ -261,7 +261,11 @@ impl<T> Stream for RequestStream<T> {
 
         match try_ready!(self.base.poll(&mut self.call, false)).map(self.de) {
             None => Ok(Async::Ready(None)),
-            Some(Ok(data)) => Ok(Async::Ready(Some(data))),
+            Some(Ok(data)) => {
+                let since_the_epoch = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("Time went backwards");
+                info!("RequestStream poll YKGX de now: {:?} batch command: {:?}", since_the_epoch.as_millis(), data);
+                Ok(Async::Ready(Some(data)))
+            },
             Some(Err(err)) => Err(err),
         }
     }

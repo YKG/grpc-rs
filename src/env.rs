@@ -28,9 +28,12 @@ fn poll_queue(tx: mpsc::Sender<CompletionQueue>) {
         let tag: Box<CallTag> = unsafe { Box::from_raw(e.tag as _) };
 
         tag.resolve(&cq, e.success != 0);
+        let mut cnt :  usize = 0;
         while let Some(work) = unsafe { cq.worker.pop_work() } {
             work.finish(&cq);
+            cnt += 1
         }
+        info!("poll_queue cnt: {}", cnt)
     }
 }
 
