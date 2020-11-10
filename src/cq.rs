@@ -174,7 +174,7 @@ impl WorkQueue {
         if queue.capacity() > QUEUE_CAPACITY && queue.len() < queue.capacity() / 2 {
             queue.shrink_to_fit();
         }
-        { &mut *self.pending_work.get() }.pop_back()
+        { &mut *self.pending_work.get() }.pop_front()
     }
 }
 
