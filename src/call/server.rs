@@ -249,7 +249,8 @@ impl<T> RequestStream<T> {
     }
 }
 
-impl<T> Stream for RequestStream<T> {
+impl<T> Stream for RequestStream<T>
+    where T : std::fmt::Debug {
     type Item = T;
     type Error = Error;
 
