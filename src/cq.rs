@@ -157,6 +157,7 @@ impl WorkQueue {
     /// If the method is not called from the same thread where it's created,
     /// the work will returned and no work is pushed.
     pub fn push_work(&self, work: UnfinishedWork) -> Option<UnfinishedWork> {
+        info!("YKGX push_work bt: {:?}", backtrace::Backtrace::new());
         if self.id == thread::current().id() {
             unsafe { &mut *self.pending_work.get() }.push_back(work);
             None

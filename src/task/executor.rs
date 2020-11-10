@@ -193,17 +193,25 @@ impl UnfinishedWork {
 fn poll(cq: &CompletionQueue, task: Arc<SpawnTask>, woken: bool) {
     let mut init_state = if woken { NOTIFIED } else { IDLE };
     // TODO: maybe we need to break the loop to avoid hunger.
+    let mut count: u64 = 0;
+    let timer = time::Instant::now();
     loop {
+        info!("poll loop bt: {:?}", backtrace::Backtrace::new());
+        count += 1;
         match task
             .state
             .compare_exchange(init_state, POLLING, Ordering::AcqRel, Ordering::Acquire)
         {
             Ok(_) => {}
-            Err(COMPLETED) => return,
+            Err(COMPLETED) => {
+                info!("poll loop 1 count: {:?} elapsed: {:?} as us: {:?}", count, timer.elapsed(), timer.elapsed().as_micros());
+                return
+            },
             Err(s) => panic!("unexpected state {}", s),
         }
 
         let id = &*task as *const SpawnTask as usize;
+        info!("poll loop 3 count: {:?} elapsed: {:?} as us: {:?} task.id: {:?}", count, timer.elapsed(), timer.elapsed().as_micros(), id);
 
         // L208 "lock"s state, hence it's safe to get a mutable reference.
         match unsafe { &mut *task.handle.get() }
@@ -222,7 +230,10 @@ fn poll(cq: &CompletionQueue, task: Arc<SpawnTask>, woken: bool) {
                     Ordering::AcqRel,
                     Ordering::Acquire,
                 ) {
-                    Ok(_) => return,
+                    Ok(_) => {
+                        info!("poll loop 2 count: {:?} elapsed: {:?} as us: {:?}", count, timer.elapsed(), timer.elapsed().as_micros());
+                        return
+                    },
                     Err(NOTIFIED) => {
                         init_state = NOTIFIED;
                     }

@@ -261,7 +261,10 @@ impl<T> Stream for RequestStream<T> {
 
         match try_ready!(self.base.poll(&mut self.call, false)).map(self.de) {
             None => Ok(Async::Ready(None)),
-            Some(Ok(data)) => Ok(Async::Ready(Some(data))),
+            Some(Ok(data)) => {
+                info!("stream.poll data: {} bt: {:?}", data, backtrace::Backtrace::new());
+                Ok(Async::Ready(Some(data)))
+            },
             Some(Err(err)) => Err(err),
         }
     }
