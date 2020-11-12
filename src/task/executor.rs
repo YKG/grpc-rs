@@ -194,7 +194,7 @@ fn poll(cq: &CompletionQueue, task: Arc<SpawnTask>, woken: bool) {
     let mut init_state = if woken { NOTIFIED } else { IDLE };
     // TODO: maybe we need to break the loop to avoid hunger.
     let mut count: u64 = 0;
-    let timer = time::Instant::now();
+    let timer = std::time::Instant::now();
     loop {
         info!("poll loop bt: {:?}", backtrace::Backtrace::new());
         count += 1;
