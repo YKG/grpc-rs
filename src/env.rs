@@ -18,10 +18,9 @@ fn poll_queue(tx: mpsc::Sender<CompletionQueue>) {
     let cq = CompletionQueue::new(cq, worker_info);
     tx.send(cq.clone()).expect("send back completion queue");
     loop {
-        let e = cq.next();
         let start2 = Instant::now();
-        let since_the_epoch = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards");
-        info!("YKGX poll_queue event: {:?} ts: {}", e, since_the_epoch.as_millis());
+        let e = cq.next();
+        let t1 = start2.elapsed().as_micros();
         match e.type_ {
             EventType::GRPC_QUEUE_SHUTDOWN => break,
             // timeout should not happen in theory.
@@ -32,10 +31,12 @@ fn poll_queue(tx: mpsc::Sender<CompletionQueue>) {
         let tag: Box<CallTag> = unsafe { Box::from_raw(e.tag as _) };
 
         tag.resolve(&cq, e.success != 0);
+        let t2 = start2.elapsed().as_micros();
         while let Some(work) = unsafe { cq.worker.pop_work() } {
             work.finish(&cq);
         }
-        info!("YKGX event loop one pass duration: {:?} ts: {:?}", start2.elapsed().as_millis(), since_the_epoch.as_millis());
+        let t3 = start2.elapsed().as_micros();
+        warn!("YKGX poll_queue event: {:?} tag: {:?} t1: {} t2: {} t3: {} thread: {}", e, tag, t1, t2, t3, thread::current().name().unwrap());
     }
 }
 
