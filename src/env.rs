@@ -30,13 +30,14 @@ fn poll_queue(tx: mpsc::Sender<CompletionQueue>) {
 
         let tag: Box<CallTag> = unsafe { Box::from_raw(e.tag as _) };
 
+        let tagStr = format!("{:?}", tag);
         tag.resolve(&cq, e.success != 0);
         let t2 = start2.elapsed().as_micros();
         while let Some(work) = unsafe { cq.worker.pop_work() } {
             work.finish(&cq);
         }
         let t3 = start2.elapsed().as_micros();
-        warn!("YKGX poll_queue event: {:?} tag: {:?} t1: {} t2: {} t3: {} thread: {}", e, tag, t1, t2, t3, thread::current().name().unwrap());
+        warn!("YKGX poll_queue event: {:?} thread: {} t1: {} t2: {} t3: {} tag: {}", e, thread::current().name().unwrap(), t1, t2, t3, tagStr);
     }
 }
 
