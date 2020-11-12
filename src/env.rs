@@ -37,7 +37,7 @@ fn poll_queue(tx: mpsc::Sender<CompletionQueue>) {
             work.finish(&cq);
         }
         let t3 = start2.elapsed().as_micros();
-        warn!("YKGX poll_queue event: {:?} thread: {} t1: {} t2: {} t3: {} tag: {}", e, thread::current().name().unwrap(), t1, t2, t3, tagStr);
+        warn!("YKGX poll_queue event: {:?} thread: {} t1: {} t2: {} t3: {} tag: {}", e, std::thread::current().name().unwrap(), t1, t2, t3, tagStr);
     }
 }
 
