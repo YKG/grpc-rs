@@ -18,8 +18,6 @@ fn poll_queue(tx: mpsc::Sender<CompletionQueue>) {
     let cq = CompletionQueue::new(cq, worker_info);
     tx.send(cq.clone()).expect("send back completion queue");
     let mut count: usize = 0;
-    let thread_name = std::thread::current().name().unwrap();
-    let str_thread_name = format!("{:?}", thread_name);
     loop {
         let t1 = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards");
         let e = cq.next();
@@ -42,7 +40,7 @@ fn poll_queue(tx: mpsc::Sender<CompletionQueue>) {
         }
         let t4 = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards");
         let since_the_epoch = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards");
-        warn!("YKGX thread: {} poll_queue count: {} t1: {:?} t2: {:?} t3: {:?} t4: {:?} cnt: {} ", str_thread_name, count, t1, t2, t3, t4, cnt);
+        warn!("YKGX thread: {} poll_queue count: {} t1: {:?} t2: {:?} t3: {:?} t4: {:?} cnt: {} ", std::thread::current().name().unwrap(), count, t1, t2, t3, t4, cnt);
         count += 1;
     }
 }
