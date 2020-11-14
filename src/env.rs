@@ -41,7 +41,7 @@ fn poll_queue(tx: mpsc::Sender<CompletionQueue>) {
         }
         let t4 = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards");
         let since_the_epoch = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards");
-        warn!("YKGX thread: {} poll_queue count: {} t1: {} t2: {} t3: {] t4: {} cnt: {} ", thread_name, count, t1, t2, t3, t4, cnt);
+        warn!("YKGX thread: {} poll_queue count: {} t1: {} t2: {} t3: {} t4: {} cnt: {} ", thread_name, count, t1, t2, t3, t4, cnt);
         count += 1;
     }
 }
