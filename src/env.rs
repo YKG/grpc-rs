@@ -16,8 +16,12 @@ fn poll_queue(tx: mpsc::Sender<CompletionQueue>) {
     let worker_info = Arc::new(WorkQueue::new());
     let cq = CompletionQueue::new(cq, worker_info);
     tx.send(cq.clone()).expect("send back completion queue");
+    let mut count: usize = 0;
+    let thread_name = std::thread::current().name().unwrap();
     loop {
+        let t1 = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards");
         let e = cq.next();
+        let t2 = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards");
         match e.type_ {
             EventType::GRPC_QUEUE_SHUTDOWN => break,
             // timeout should not happen in theory.
@@ -28,12 +32,16 @@ fn poll_queue(tx: mpsc::Sender<CompletionQueue>) {
         let tag: Box<CallTag> = unsafe { Box::from_raw(e.tag as _) };
 
         tag.resolve(&cq, e.success != 0);
+        let t3 = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards");
         let mut cnt :  usize = 0;
         while let Some(work) = unsafe { cq.worker.pop_work() } {
             work.finish(&cq);
             cnt += 1
         }
-        info!("poll_queue cnt: {}", cnt)
+        let t4 = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards");
+        let since_the_epoch = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards");
+        warn!("YKGX thread: {} poll_queue count: {} t1: {} t2: {} t3: {] t4: {} cnt: {} ", thread_name, count, t1, t2, t3, t4, cnt);
+        count += 1;
     }
 }
 
