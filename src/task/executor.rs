@@ -193,13 +193,22 @@ impl UnfinishedWork {
 fn poll(cq: &CompletionQueue, task: Arc<SpawnTask>, woken: bool) {
     let mut init_state = if woken { NOTIFIED } else { IDLE };
     // TODO: maybe we need to break the loop to avoid hunger.
+    let mut count = 0;
+    let start = std::time::Instant::now();
     loop {
+        let since_the_epoch = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("Time went backwards");
+        warn!("YKGX thread: {} executor poll count: {} now: {:?} loop start. elapsed: {}", std::thread::current().name().unwrap(), count, since_the_epoch, start.elapsed().as_micros());
+        count += 1;
         match task
             .state
             .compare_exchange(init_state, POLLING, Ordering::AcqRel, Ordering::Acquire)
         {
             Ok(_) => {}
-            Err(COMPLETED) => return,
+            Err(COMPLETED) => {
+                let since_the_epoch = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("Time went backwards");
+                warn!("YKGX thread: {} executor poll count: {} now: {:?} exit1 elapsed: {}", std::thread::current().name().unwrap(), count, since_the_epoch, start.elapsed().as_micros());
+                return
+            },
             Err(s) => panic!("unexpected state {}", s),
         }
 
@@ -212,6 +221,8 @@ fn poll(cq: &CompletionQueue, task: Arc<SpawnTask>, woken: bool) {
             .poll_future_notify(&cq.worker, id)
         {
             Err(_) | Ok(Async::Ready(_)) => {
+                let since_the_epoch = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("Time went backwards");
+                warn!("YKGX thread: {} executor poll count: {} now: {:?} continue1 elapsed: {}", std::thread::current().name().unwrap(), count, since_the_epoch, start.elapsed().as_micros());
                 task.state.store(COMPLETED, Ordering::Release);
                 unsafe { &mut *task.handle.get() }.take();
             }
@@ -222,9 +233,15 @@ fn poll(cq: &CompletionQueue, task: Arc<SpawnTask>, woken: bool) {
                     Ordering::AcqRel,
                     Ordering::Acquire,
                 ) {
-                    Ok(_) => return,
+                    Ok(_) => {
+                        let since_the_epoch = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("Time went backwards");
+                        warn!("YKGX thread: {} executor poll count: {} now: {:?} exit2 elapsed: {}", std::thread::current().name().unwrap(), count, since_the_epoch, start.elapsed().as_micros());
+                        return
+                    },
                     Err(NOTIFIED) => {
                         init_state = NOTIFIED;
+                        let since_the_epoch = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("Time went backwards");
+                        warn!("YKGX thread: {} executor poll count: {} now: {:?} continue2 elapsed: {}", std::thread::current().name().unwrap(), count, since_the_epoch, start.elapsed().as_micros());
                     }
                     Err(s) => panic!("unexpected state {}", s),
                 }
