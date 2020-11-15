@@ -30,9 +30,9 @@ fn poll_queue(tx: mpsc::Sender<CompletionQueue>) {
         }
 
         let tag: Box<CallTag> = unsafe { Box::from_raw(e.tag as _) };
+        let tag_str = format!("{:?}", tag);
 
         tag.resolve(&cq, e.success != 0);
-        let tag_str = format!("{:?}", tag);
         let t3 = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards");
         let mut cnt :  usize = 0;
         while let Some(work) = unsafe { cq.worker.pop_work() } {
