@@ -32,6 +32,7 @@ fn poll_queue(tx: mpsc::Sender<CompletionQueue>) {
         let tag: Box<CallTag> = unsafe { Box::from_raw(e.tag as _) };
 
         tag.resolve(&cq, e.success != 0);
+        let tag_str = format!("{:?}", tag);
         let t3 = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards");
         let mut cnt :  usize = 0;
         while let Some(work) = unsafe { cq.worker.pop_work() } {
@@ -40,7 +41,7 @@ fn poll_queue(tx: mpsc::Sender<CompletionQueue>) {
         }
         let t4 = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards");
         let since_the_epoch = SystemTime::now().duration_since(UNIX_EPOCH).expect("Time went backwards");
-        warn!("YKGX thread: {} poll_queue count: {} now: {:?} t1: {:?} t2: {:?} t3: {:?} t4: {:?} cnt: {} ", std::thread::current().name().unwrap(), count, since_the_epoch.as_millis(), t1, t2, t3, t4, cnt);
+        warn!("YKGX thread: {} poll_queue count: {} now: {:?} t1: {:?} t2: {:?} t3: {:?} t4: {:?} cnt: {} tag_str: {}", std::thread::current().name().unwrap(), count, since_the_epoch.as_millis(), t1, t2, t3, t4, cnt, tag_str);
         count += 1;
     }
 }

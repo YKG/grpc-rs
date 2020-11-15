@@ -198,7 +198,6 @@ fn poll(cq: &CompletionQueue, task: Arc<SpawnTask>, woken: bool) {
     loop {
         let since_the_epoch = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("Time went backwards");
         warn!("YKGX thread: {} executor poll count: {} now: {:?} loop start. elapsed: {}", std::thread::current().name().unwrap(), count, since_the_epoch, start.elapsed().as_micros());
-        count += 1;
         match task
             .state
             .compare_exchange(init_state, POLLING, Ordering::AcqRel, Ordering::Acquire)
@@ -247,6 +246,7 @@ fn poll(cq: &CompletionQueue, task: Arc<SpawnTask>, woken: bool) {
                 }
             }
         }
+        count += 1;
     }
 }
 
