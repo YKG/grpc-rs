@@ -79,3 +79,4 @@ pub use crate::security::{
     ServerCredentialsBuilder, ServerCredentialsFetcher,
 };
 pub use crate::server::{Server, ServerBuilder, Service, ServiceBuilder, ShutdownFuture};
+pub use crate::cq::{TraceEvent, TracePos};
