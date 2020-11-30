@@ -178,15 +178,41 @@ impl WorkQueue {
     }
 }
 
+#[derive(Debug)]
+pub enum TracePos {
+    // DE1,
+    DE2,
+    KV1,
+    KV2,
+    DUMP
+}
+
+#[derive(Debug)]
+pub struct TraceEvent {
+    pub req_id: u64,
+    pub ts: std::time::SystemTime,
+    pub pos: TracePos
+}
+
+impl TraceEvent {
+    #[inline]
+    pub fn new(req_id: u64, pos: TracePos) -> TraceEvent {
+        TraceEvent{req_id, pos, ts:  std::time::SystemTime::now()}
+    }
+}
+
 #[derive(Clone)]
 pub struct CompletionQueue {
     handle: Arc<CompletionQueueHandle>,
     pub(crate) worker: Arc<WorkQueue>,
+    pub(crate) tracer: Vec<TraceEvent>,
 }
+
+use std::io::Write;
 
 impl CompletionQueue {
     pub fn new(handle: Arc<CompletionQueueHandle>, worker: Arc<WorkQueue>) -> CompletionQueue {
-        CompletionQueue { handle, worker }
+        CompletionQueue { handle, worker, tracer: Vec::new() }
     }
 
     /// Blocks until an event is available, the completion queue is being shut down.
@@ -208,6 +234,14 @@ impl CompletionQueue {
     /// `Event::QueueShutdown` events only.
     pub fn shutdown(&self) {
         self.handle.shutdown()
+    }
+
+    pub fn dump_trace(&self) {
+        let file = std::fs::File::create("kv_trace.txt").unwrap();
+        let mut file =  std::io::LineWriter::new(file);
+        for e in &self.trace {
+            file.write_all(format!("{}, {:?}, {:?}\n", e.req_id, e.pos, e.ts).as_bytes()).unwrap();
+        }
     }
 
     pub fn worker_id(&self) -> ThreadId {

@@ -19,7 +19,10 @@ fn poll_queue(tx: mpsc::Sender<CompletionQueue>) {
     loop {
         let e = cq.next();
         match e.type_ {
-            EventType::GRPC_QUEUE_SHUTDOWN => break,
+            EventType::GRPC_QUEUE_SHUTDOWN => {
+                cq.dump_trace();
+                break
+            },
             // timeout should not happen in theory.
             EventType::GRPC_QUEUE_TIMEOUT => continue,
             EventType::GRPC_OP_COMPLETE => {}
