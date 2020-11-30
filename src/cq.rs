@@ -205,14 +205,14 @@ impl TraceEvent {
 pub struct CompletionQueue {
     handle: Arc<CompletionQueueHandle>,
     pub(crate) worker: Arc<WorkQueue>,
-    pub(crate) tracer: Vec<TraceEvent>,
+    tracer: Arc<Vec<TraceEvent>>,
 }
 
 use std::io::Write;
 
 impl CompletionQueue {
     pub fn new(handle: Arc<CompletionQueueHandle>, worker: Arc<WorkQueue>) -> CompletionQueue {
-        CompletionQueue { handle, worker, tracer: Vec::new() }
+        CompletionQueue { handle, worker, tracer: Arc::new(Vec::new()) }
     }
 
     /// Blocks until an event is available, the completion queue is being shut down.
@@ -242,6 +242,10 @@ impl CompletionQueue {
         for e in &self.trace {
             file.write_all(format!("{}, {:?}, {:?}\n", e.req_id, e.pos, e.ts).as_bytes()).unwrap();
         }
+    }
+
+    pub fn push(&self, e: TraceEvent) {
+        self.tracer.clone().push(e);
     }
 
     pub fn worker_id(&self) -> ThreadId {
