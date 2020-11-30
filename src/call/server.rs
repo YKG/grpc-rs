@@ -595,6 +595,10 @@ impl<'a> RpcContext<'a> {
         self.ctx.call(self.executor.cq().clone())
     }
 
+    pub(crate) fn cq(&self) -> &CompletionQueue {
+        self.executor.cq()
+    }
+
     pub fn method(&self) -> &[u8] {
         self.ctx.method()
     }
