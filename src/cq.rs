@@ -239,7 +239,8 @@ impl CompletionQueue {
     pub fn dump_trace(&self) {
         let file = std::fs::File::create("kv_trace.txt").unwrap();
         let mut file =  std::io::LineWriter::new(file);
-        for e in &self.tracer.clone() {
+        let store = Arc::try_unwrap(self.tracer.clone()).unwrap();
+        for e in &store {
             file.write_all(format!("{}, {:?}, {:?}\n", e.req_id, e.pos, e.ts).as_bytes()).unwrap();
         }
     }
