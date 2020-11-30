@@ -4,7 +4,7 @@ use std::cell::UnsafeCell;
 use std::collections::VecDeque;
 use std::ptr;
 use std::sync::atomic::{AtomicIsize, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::thread::{self, ThreadId};
 
 use crate::error::{Error, Result};
@@ -205,14 +205,14 @@ impl TraceEvent {
 pub struct CompletionQueue {
     handle: Arc<CompletionQueueHandle>,
     pub(crate) worker: Arc<WorkQueue>,
-    tracer: Arc<Vec<TraceEvent>>,
+    tracer: Arc<Mutex<Vec<TraceEvent>>>,
 }
 
 use std::io::Write;
 
 impl CompletionQueue {
     pub fn new(handle: Arc<CompletionQueueHandle>, worker: Arc<WorkQueue>) -> CompletionQueue {
-        CompletionQueue { handle, worker, tracer: Arc::new(Vec::new()) }
+        CompletionQueue { handle, worker, tracer: Arc::new(Mutex::new(Vec::new())) }
     }
 
     /// Blocks until an event is available, the completion queue is being shut down.
@@ -239,14 +239,14 @@ impl CompletionQueue {
     pub fn dump_trace(&self) {
         let file = std::fs::File::create("kv_trace.txt").unwrap();
         let mut file =  std::io::LineWriter::new(file);
-        let store = Arc::try_unwrap(self.tracer.clone()).unwrap();
+        let store = self.tracer.lock().unwrap();
         for e in &store {
             file.write_all(format!("{}, {:?}, {:?}\n", e.req_id, e.pos, e.ts).as_bytes()).unwrap();
         }
     }
 
     pub fn push(&self, e: TraceEvent) {
-        self.tracer.clone().push(e);
+        self.tracer.lock().unwrap().push(e);
     }
 
     pub fn worker_id(&self) -> ThreadId {
