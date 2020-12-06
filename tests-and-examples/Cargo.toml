@@ -56,3 +56,11 @@ path = "examples/load_balancing/client.rs"
 [[example]]
 name = "lb_greeter_server"
 path = "examples/load_balancing/server.rs"
+
+[[example]]
+name = "echo_client"
+path = "examples/echo/client.rs"
+
+[[example]]
+name = "echo_server"
+path = "examples/echo/server.rs"
