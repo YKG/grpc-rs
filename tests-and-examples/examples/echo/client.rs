@@ -96,11 +96,11 @@ async fn bi_stream(client : &EchoClient) -> Result<()> {
 async fn async_main() -> Result<()> {
     let _guard = log_util::init_log(None);
     let env = Arc::new(EnvBuilder::new().build());
-    let ch = ChannelBuilder::new(env).connect("ipv4:127.0.0.1:51051");
+    let ch = ChannelBuilder::new(env).connect("ipv4:127.0.0.1:50051");
     let client = EchoClient::new(ch);
 
-    get_stream(&client).await?;
-    client_stream(&client).await?;
+    // get_stream(&client).await?;
+    // client_stream(&client).await?;
     bi_stream(&client).await?;
 
     Ok(())

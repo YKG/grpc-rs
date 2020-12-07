@@ -20,7 +20,7 @@ syntax = "proto3";
 
 option go_package = "google.golang.org/grpc/examples/features/proto/echo";
 
-package echo;
+package grpc.examples.echo;
 
 // EchoRequest is the request for echo.
 message EchoRequest {

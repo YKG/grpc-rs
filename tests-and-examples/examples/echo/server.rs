@@ -74,15 +74,16 @@ impl Echo for EchoService {
     fn bidirectional_streaming_echo(&mut self, ctx: RpcContext<'_>, mut reqs: RequestStream<EchoRequest>, mut sink: DuplexSink<EchoResponse>) {
         let f = async move {
             while let Some(req) = reqs.try_next().await? {
-                let msg = format!("Hello1 {}", req.get_message());
-                println!("server got: {:?}", msg);
+                // let msg = format!("Hello1 {}", req.get_message());
+                // println!("server got: {:?}", msg);
                 let mut resp1 = EchoResponse::default();
-                resp1.set_message("server got: ".to_string() + &*msg);
+                // resp1.set_message("server got: ".to_string() + &*msg);
+                resp1.set_message(req.get_message().to_string());
                 sink.send((resp1, WriteFlags::default())).await?;
             }
-            let mut resp1 = EchoResponse::default();
-            resp1.set_message("server done".to_string());
-            sink.send((resp1, WriteFlags::default())).await?;
+            // let mut resp1 = EchoResponse::default();
+            // resp1.set_message("server done".to_string());
+            // sink.send((resp1, WriteFlags::default())).await?;
             sink.close().await?;
             Ok(())
         }
@@ -97,12 +98,12 @@ fn main() {
     let env = Arc::new(Environment::new(1));
     let service = create_echo(EchoService);
 
-    let quota = ResourceQuota::new(Some("ServerQuota")).resize_memory(1024 * 1024);
+    let quota = ResourceQuota::new(Some("ServerQuota")).resize_memory(300 * 1024 * 1024);
     let ch_builder = ChannelBuilder::new(env.clone()).set_resource_quota(quota);
 
     let mut server = ServerBuilder::new(env)
         .register_service(service)
-        .bind("0.0.0.0", 51051)
+        .bind("0.0.0.0", 50052)
         .channel_args(ch_builder.build_args())
         .build()
         .unwrap();
