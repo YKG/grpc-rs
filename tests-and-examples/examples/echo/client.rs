@@ -20,18 +20,22 @@ use grpcio::*; // Result<()>
 use grpcio::{ChannelBuilder, EnvBuilder};
 use grpcio_proto::example::echo::EchoRequest;
 use grpcio_proto::example::echo_grpc::EchoClient;
+use std::time::{Instant};
 
 async fn get_stream(client : &EchoClient) -> Result<()> {
     let mut req = EchoRequest::default();
-    req.set_message("world2".to_owned());
+    req.set_message("world stream ".to_owned());
+    info!("client send the requet >>>>>");
+    let start = Instant::now();
     let mut list_features = client.server_streaming_echo(&req)?;
     while let Some(feature) = list_features.try_next().await? {
         let msg = feature.get_message();
         info!(
-            "Found feature {} at {}",
-            msg, "1"
+            "Found feature {} ",
+            msg
         );
     }
+    info!("client recv done       <<<<< {:?}", start.elapsed());
     Ok(())
 }
 

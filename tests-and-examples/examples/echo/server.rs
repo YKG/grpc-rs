@@ -41,10 +41,10 @@ impl Echo for EchoService {
         // resp1.set_message(msg);
 
         let f = async move {
-                for _ in 0..3 {
+                for i in 0..30 {
                     // println!("server got: {:?}", "msg");
                     let mut resp1 = EchoResponse::default();
-                    resp1.set_message(msg.clone());
+                    resp1.set_message(msg.clone() + &*i.to_string());
                     sink.send((resp1, WriteFlags::default())).await?;
                 }
                 sink.close().await?;
