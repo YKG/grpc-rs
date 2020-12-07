@@ -39,6 +39,24 @@ async fn get_stream(client : &EchoClient) -> Result<()> {
     Ok(())
 }
 
+
+async fn client_stream(client : &EchoClient) -> Result<()> {
+    let mut req = EchoRequest::default();
+    req.set_message("client stream ".to_owned());
+    info!("client send the requet >>>>>");
+    let start = Instant::now();
+    let (mut sink, receiver) = client.client_streaming_echo()?;
+
+    for _i in 1..3 {
+        sink.send((req.to_owned(), WriteFlags::default() )).await?;
+    }
+    sink.close().await?;
+    let result = receiver.await?;
+    info!("result from server: {:?}", result);
+    info!("client recv done       <<<<< {:?}", start.elapsed());
+    Ok(())
+}
+
 async fn async_main() -> Result<()> {
     let _guard = log_util::init_log(None);
     let env = Arc::new(EnvBuilder::new().build());
@@ -46,6 +64,7 @@ async fn async_main() -> Result<()> {
     let client = EchoClient::new(ch);
 
     get_stream(&client).await?;
+    client_stream(&client).await?;
 
     Ok(())
 }
