@@ -13,7 +13,7 @@ use std::{io, thread};
 use futures::channel::oneshot;
 use futures::executor::block_on;
 use futures::prelude::*;
-use grpcio::{ChannelBuilder, Environment, ResourceQuota, RpcContext, ServerBuilder, UnarySink, ServerStreamingSink, WriteFlags, ClientStreamingSink, RequestStream};
+use grpcio::{ChannelBuilder, Environment, ResourceQuota, RpcContext, ServerBuilder, UnarySink, ServerStreamingSink, WriteFlags, ClientStreamingSink, RequestStream, DuplexSink};
 
 use grpcio_proto::example::echo::{EchoResponse, EchoRequest};
 use grpcio_proto::example::echo_grpc::{create_echo, Echo};
@@ -68,6 +68,26 @@ impl Echo for EchoService {
         }
         .map_err(|e: grpcio::Error| error!("failed to handle listfeatures request: {:?}", e))
         .map(|_| ());
+        ctx.spawn(f)
+    }
+
+    fn bidirectional_streaming_echo(&mut self, ctx: RpcContext<'_>, mut reqs: RequestStream<EchoRequest>, mut sink: DuplexSink<EchoResponse>) {
+        let f = async move {
+            while let Some(req) = reqs.try_next().await? {
+                let msg = format!("Hello1 {}", req.get_message());
+                println!("server got: {:?}", msg);
+                let mut resp1 = EchoResponse::default();
+                resp1.set_message("server got: ".to_string() + &*msg);
+                sink.send((resp1, WriteFlags::default())).await?;
+            }
+            let mut resp1 = EchoResponse::default();
+            resp1.set_message("server done".to_string());
+            sink.send((resp1, WriteFlags::default())).await?;
+            sink.close().await?;
+            Ok(())
+        }
+            .map_err(|e: grpcio::Error| error!("failed to handle listfeatures request: {:?}", e))
+            .map(|_| ());
         ctx.spawn(f)
     }
 }

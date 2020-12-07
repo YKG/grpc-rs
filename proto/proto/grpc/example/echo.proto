@@ -41,5 +41,5 @@ service Echo {
   // ClientStreamingEcho is client side streaming.
   rpc ClientStreamingEcho(stream EchoRequest) returns (EchoResponse) {}
   // BidirectionalStreamingEcho is bidi streaming.
-//  rpc BidirectionalStreamingEcho(stream EchoRequest) returns (stream EchoResponse) {}
+  rpc BidirectionalStreamingEcho(stream EchoRequest) returns (stream EchoResponse) {}
 }

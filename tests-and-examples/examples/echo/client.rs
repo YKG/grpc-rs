@@ -24,7 +24,7 @@ use std::time::{Instant};
 
 async fn get_stream(client : &EchoClient) -> Result<()> {
     let mut req = EchoRequest::default();
-    req.set_message("world stream ".to_owned());
+    req.set_message("server stream ".to_owned());
     info!("client send the requet >>>>>");
     let start = Instant::now();
     let mut list_features = client.server_streaming_echo(&req)?;
@@ -35,7 +35,7 @@ async fn get_stream(client : &EchoClient) -> Result<()> {
             msg
         );
     }
-    info!("client recv done       <<<<< {:?}", start.elapsed());
+    info!("client recv done       <<<<< {:?} server_stream\n", start.elapsed());
     Ok(())
 }
 
@@ -53,7 +53,43 @@ async fn client_stream(client : &EchoClient) -> Result<()> {
     sink.close().await?;
     let result = receiver.await?;
     info!("result from server: {:?}", result);
-    info!("client recv done       <<<<< {:?}", start.elapsed());
+    info!("client recv done       <<<<< {:?} client_stream\n", start.elapsed());
+    Ok(())
+}
+
+async fn bi_stream(client : &EchoClient) -> Result<()> {
+
+    info!("client send the requet >>>>>");
+    let start = Instant::now();
+    let (mut sink, mut receiver) = client.bidirectional_streaming_echo()?;
+
+    let send = async move {
+        let mut req = EchoRequest::default();
+
+        let mut _i: i32 = 0;
+        while _i < 3 {
+            _i += 1;
+            req.set_message("client bi_stream ".to_owned() + &*_i.to_string());
+            sink.send((req.to_owned(), WriteFlags::default())).await?;
+        }
+
+        sink.close().await?;
+        Ok(()) as Result<_>
+    };
+
+    let recv = async {
+        while let Some(feature) = receiver.try_next().await? {
+            let msg = feature.get_message();
+            info!(
+                "bi_stream recv: {} ",
+                msg
+            );
+        }
+        Ok(()) as Result<_>
+    };
+    let (sr, rr) = futures::join!(send, recv);
+    sr.and(rr)?;
+    info!("client recv done       <<<<< {:?} bi_stream\n", start.elapsed());
     Ok(())
 }
 
@@ -65,6 +101,7 @@ async fn async_main() -> Result<()> {
 
     get_stream(&client).await?;
     client_stream(&client).await?;
+    bi_stream(&client).await?;
 
     Ok(())
 }
