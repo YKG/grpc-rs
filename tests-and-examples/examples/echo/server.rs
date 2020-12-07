@@ -13,7 +13,7 @@ use std::{io, thread};
 use futures::channel::oneshot;
 use futures::executor::block_on;
 use futures::prelude::*;
-use grpcio::{ChannelBuilder, Environment, ResourceQuota, RpcContext, ServerBuilder, UnarySink};
+use grpcio::{ChannelBuilder, Environment, ResourceQuota, RpcContext, ServerBuilder, UnarySink, ServerStreamingSink, WriteFlags};
 
 use grpcio_proto::example::echo::{EchoResponse, EchoRequest};
 use grpcio_proto::example::echo_grpc::{create_echo, Echo};
@@ -33,6 +33,28 @@ impl Echo for EchoService {
             .map(|_| ());
         ctx.spawn(f)
     }
+
+    fn server_streaming_echo(&mut self, ctx: RpcContext<'_>, req: EchoRequest, mut sink: ServerStreamingSink<EchoResponse>) {
+        let msg = format!("Hello {}", req.get_message());
+        println!("server got: {:?}", msg);
+        // let mut resp1 = EchoResponse::default();
+        // resp1.set_message(msg);
+
+        let f = async move {
+                for _ in 0..3 {
+                    // println!("server got: {:?}", "msg");
+                    let mut resp1 = EchoResponse::default();
+                    resp1.set_message(msg.clone());
+                    sink.send((resp1, WriteFlags::default())).await?;
+                }
+                sink.close().await?;
+                Ok(())
+            }
+            .map_err(|e: grpcio::Error| error!("failed to handle listfeatures request: {:?}", e))
+            .map(|_| ());
+        ctx.spawn(f)
+    }
+
 }
 
 fn main() {
