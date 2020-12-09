@@ -7,7 +7,7 @@ extern crate log;
 mod log_util;
 
 use std::io::Read;
-use std::sync::Arc;
+use std::sync::{Arc};
 use std::{io, thread};
 
 use futures::channel::oneshot;
@@ -17,6 +17,7 @@ use grpcio::{ChannelBuilder, Environment, ResourceQuota, RpcContext, ServerBuild
 
 use grpcio_proto::example::echo::{EchoResponse, EchoRequest};
 use grpcio_proto::example::echo_grpc::{create_echo, Echo};
+use futures_timer::Delay;
 
 #[derive(Clone)]
 struct EchoService;
@@ -77,17 +78,84 @@ impl Echo for EchoService {
         ctx.spawn(f)
     }
 
+    // fn bidirectional_streaming_echo(&mut self, ctx: RpcContext<'_>, mut reqs: RequestStream<EchoRequest>, mut sink: DuplexSink<EchoResponse>) {
+    //     let f = async move {
+    //         while let Some(req) = reqs.try_next().await? {
+    //             sink.send(( gen_resp(&req), WriteFlags::default() )).await?;
+    //         }
+    //         sink.close().await?;
+    //         Ok(())
+    //     }
+    //         .map_err(|e: grpcio::Error| error!("failed to handle listfeatures request: {:?}", e))
+    //         .map(|_| ());
+    //     ctx.spawn(f)
+    // }
+
     fn bidirectional_streaming_echo(&mut self, ctx: RpcContext<'_>, mut reqs: RequestStream<EchoRequest>, mut sink: DuplexSink<EchoResponse>) {
+        // let buf = Arc::new(Mutex::new(Vec::new()));
+        // let buf2 = buf.clone();
+        let (tx, rx) = futures::channel::oneshot::channel();
+        let (mut tx2, mut rx2) = futures::channel::mpsc::channel(100);
         let f = async move {
             while let Some(req) = reqs.try_next().await? {
-                sink.send(( gen_resp(&req), WriteFlags::default() )).await?;
+                println!("recv: {:?}", req);
+                // buf.lock().unwrap().push(req);
+                tx2.send(req).await.unwrap();
             }
-            sink.close().await?;
+            tx.send(true).unwrap();
             Ok(())
         }
             .map_err(|e: grpcio::Error| error!("failed to handle listfeatures request: {:?}", e))
             .map(|_| ());
-        ctx.spawn(f)
+        ctx.spawn(f);
+
+        let mut rx = rx.fuse();
+        let rr  = async move {
+            let mut timeout = Delay::new(std::time::Duration::from_millis(5000)).fuse();
+            // let mut interval = time::interval(Duration::from_millis(50));
+            let mut v2 = Vec::new();
+
+            sink.enhance_batch(true);
+            let mut eof = false;
+            loop {
+                futures::select! {
+                    _ = rx => {
+                        eof = true;
+                    }
+                    _ = timeout => {
+                        // println!("operation timed out--------------");
+                        // println!("timeo {:?} {:?}", v2, std::time::SystemTime::now());
+                    }
+                    r = rx2.next() => match r {
+                        None => {
+                            // println!(">>>>>>>>> batch {:?} GOT NONE", std::time::SystemTime::now());
+                            eof = true;
+                        },
+                        Some(req) => {
+                            // println!(">>>>>>>>> batch {:?} {:?} {:?}", std::time::SystemTime::now(), v2, req);
+                            v2.push(req);
+                            if v2.len() < 1 {
+                                continue
+                            }
+                        }
+                    }
+                }
+
+                if eof {
+                    sink.close().await.expect("err");
+                    break
+                }
+
+                let length = v2.len();
+                let mut stream1 = stream::iter(v2.into_iter().map(|req|{(gen_resp(&req), WriteFlags::default())}).map(Ok));
+                println!("sendall >>>>>>>>>>> -------------- {}", length);
+                sink.send_all(&mut stream1).await.unwrap();
+                timeout = Delay::new(std::time::Duration::from_millis(50)).fuse();
+                v2 = Vec::new();
+            }
+        }
+            .map(|_| ());
+        ctx.spawn(rr);
     }
 }
 

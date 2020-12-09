@@ -32,6 +32,7 @@ slog-async = "2.1"
 slog-stdlog = "4.0"
 slog-scope = "4.0"
 slog-term = "2.2"
+tokio = {version = "0.3.5", features=["full"]}
 
 [[example]]
 name = "route_guide_client"
